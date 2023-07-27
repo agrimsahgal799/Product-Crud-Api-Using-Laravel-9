@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\File;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Products;
 use App\Models\OptionSet;
 
@@ -33,10 +35,67 @@ class ProductController extends Controller
         $inventory = 0;
         $status = 'enable';
         $product_name = $request->name;
+        $price = $request->price;
         $description = null;
 
+        $upload = [];
+        if($request->file('images')){
+            $images = $request->file('images');
+            $valid_img = false;
+            foreach($images as $img){
+                $original_name = $img->getClientOriginalName();
+                $name = $img->hashName();
+                $path = $img->path();
+                $extension = $img->extension();
+                $is_img = $this->product_obj->isImageFile($extension);
+                if($is_img){
+                    $valid_img = true;
+                }
+                $upload[] = [
+                    'name' => $name,
+                    'path' => $path
+                ];
+            }
+            if(!$valid_img){
+                return apiResponse('Please select all valid images.',true);
+            }
+        }
+        elseif($request->has('images') && is_array($request->images) && count($request->images)>0){
+            
+            $images = $request->images;
+            $valid_img = false;
+            foreach($images as $img){
+                
+                $decodedImg = base64_decode(trim($img));
+                if(base64_encode(base64_decode($img, true)) === $img){   
+                    $decodedImg = base64_decode($img, true);
+                    $valid_img = true;
+                    $upload[] = [
+                        'name' => '',
+                        'path' => $decodedImg
+                    ];
+                }
+            }
+        }
+
+        if(count($upload)>0){
+
+            foreach($upload as $upload_file){
+                //Storage::putFile('product_images', new File('/path/to/photo'), 'public');
+
+                $path = Storage::putFileAs('public/product_images', new File($upload_file['path']), $upload_file['name']);
+                echo $path;
+                echo '<br>';
+            }
+
+            
+        }
+
+        echo '<pre>';print_r($upload);
+
         $validator = Validator::make($request->all(),[
-            'name' => 'required'    
+            'name' => 'required',
+            'price' => 'required|numeric|gte:1'    
         ]);
         if ($validator->fails()) {
             $errors = $validator->errors();
@@ -129,6 +188,7 @@ class ProductController extends Controller
                                 'name' => $v_name,
                                 'slug' => $v_slug,
                                 'description' => $description,
+                                'price' => $price,
                                 'inventory' => $inventory,
                                 'inventory_status' => $inventory_status,
                                 'option_set' => 0,
@@ -154,6 +214,7 @@ class ProductController extends Controller
             'name' => $product_name,
             'slug' => $product_slug,
             'description' => $description,
+            'price' => $price,
             'inventory' => $inventory,
             'inventory_status' => $inventory_status,
             'option_set' => $option_set,
@@ -162,6 +223,7 @@ class ProductController extends Controller
         ];
         $product_payload = array_merge(array($product_payload), $variant_products);
         print_r($product_payload);
+        die();
 
         $products = new Products();
         if(!is_null($id)){

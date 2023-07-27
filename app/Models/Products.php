@@ -141,4 +141,12 @@ class Products extends Model
         }
         return $response;
     }
+
+    public function isImageFile($ext){
+        $extensions = ['gif','jpg','jpeg','png','psd','bmp','tiff','svg'];
+        if(in_array($ext, $extensions)){
+            return true;
+        }
+        return false;
+    }
 }
