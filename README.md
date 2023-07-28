@@ -21,3 +21,5 @@ After creating the option set, call the product creation API
 - Create product by using this API: {{base_url}}/api/product/save [POST]
 - Get product list by using this API: {{base_url}}/api/products [GET]
 - Delete product by using this API: {{base_url}}/api/product/delete [POST]
+
+This is the product crud API, where we can create products with variations. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
