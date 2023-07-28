@@ -9,11 +9,24 @@ use App\Models\Options;
 
 class OptionValueController extends Controller
 {
-    public function index()
-    {
+     /**
+     * get the option values list [GET]
+     * @return json_response
+    */
+    public function index(){
         $option_values = OptionValues::orderBy('id','DESC')->get();
         return response()->json(['error'=>'false','data'=>$option_values]);
     }
+
+    /**
+     * insert/update the option values.
+     * Params -
+     * id (for update the option value) : optional
+     * option_id : required
+     * option_value : required
+     * color_code : required (if the related option type is a swatch)
+     * @return json response
+    */
     public function save(Request $request){
         
         $id = null;
@@ -61,13 +74,19 @@ class OptionValueController extends Controller
         );
 
         if(is_null($id)){
-            return apiResponse('Option value added successfully.');
+            return apiResponse('Option value created successfully.');
         }
         else{
             return apiResponse('Option value updated successfully.');
         }
     }
 
+    /**
+     * delete the product option value [POST]
+     * Params -
+     * id : required
+     * @return json response
+    */
     public function delete(Request $request){
         $id = $request->id;
         if(!is_null($id)){

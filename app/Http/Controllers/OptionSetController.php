@@ -9,17 +9,25 @@ use App\Models\Options;
 
 class OptionSetController extends Controller
 {
-    public function index()
-    {
+    /**
+     * get the option set list [GET]
+     * @return json_response
+    */
+    public function index(){
         $option_set = OptionSet::orderBy('option_set_id','DESC')->get();
         return response()->json(['error'=>'false','data'=>$option_set]);
     }
 
+    /**
+     * insert/update the option set [POST]
+     * Params -
+     * option_set_id (for update the option set) : optional
+     * option_id : required @array
+     * option_set_name : required
+     * @return json response
+    */
     public function save(Request $request)
     {
-        // echo '<pre>';
-        // print_r($request->all());
-
         $id = null;
         if($request->has('option_set_id') && request->filled('option_set_id')){
             $id = $request->option_set_id;
@@ -72,13 +80,19 @@ class OptionSetController extends Controller
         );
 
         if(is_null($id)){
-            return apiResponse('Option set added successfully.');
+            return apiResponse('Option set created successfully.');
         }
         else{
             return apiResponse('Option set updated successfully.');
         }
     }
 
+    /**
+     * delete the product set.
+     * Params -
+     * option_set_id : required
+     * @return json response
+    */
     public function delete(Request $request)
     {
         $id = $request->option_set_id;

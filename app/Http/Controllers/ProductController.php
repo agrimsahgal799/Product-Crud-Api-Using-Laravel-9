@@ -20,6 +20,10 @@ class ProductController extends Controller
         $this->product_obj = new Products();
     }
 
+    /**
+     * get the product list [GET]
+     * @return json_response
+    */
     public function index()
     {
         $products = Products::select('*')->whereNotIn('id', ProductOptions::select('option_product_id'))
@@ -52,8 +56,20 @@ class ProductController extends Controller
     }
 
     /**
-     * insert the product.
-     *
+     * insert the product [POST]
+     * Params -
+     * name : required
+     * slug : @if empty, then it will be created by name
+     * description
+     * price : required
+     * inventory : @default 0
+     * inventory_status (yes/no) : @default 'no'
+     * option_set (option set id) : optional @If it doesn't pass, the product will be treated as a normal product without variation.
+     * status (enable/disable) : @default 'enable'
+     * Images : @array
+     * There will be two ways to create images.
+     * 1. By the selection using file input (should be array)
+     * 2. By passing the base64-encoded URL (should be array)
      * @return json_response
     */
     public function save(Request $request)
@@ -191,13 +207,6 @@ class ProductController extends Controller
             'updated_at' => $updated_at
         ];
         
-        /* Debug Code :
-        echo '<pre>';
-        print_r($product_payload);
-        print_r($variant_products);
-        die();
-        */
-
         if($request->file('images')){
             $product_images = $this->product_obj->uploadImages($request->images,'file_input');
         }
@@ -246,6 +255,6 @@ class ProductController extends Controller
             $images->insert($product_images);
         }
 
-        return apiResponse('Products added successfully.');
+        return apiResponse('Product created successfully.');
     }
 }

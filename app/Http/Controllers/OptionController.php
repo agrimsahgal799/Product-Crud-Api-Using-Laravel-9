@@ -8,14 +8,25 @@ use App\Models\Options;
 
 class OptionController extends Controller
 {
-    public function index()
-    {
+    /**
+     * get the options list [GET]
+     * @return json_response
+    */
+    public function index(){
         $options = Options::orderBy('option_id','DESC')->get();
         return response()->json(['error'=>'false','data'=>$options]);
     }
 
+    /**
+     * insert/update the product options [POST]
+     * Params -
+     * option_id (for update the options) : optional
+     * option_name : required
+     * option_type (swatch or list) : required @default list
+     * @return json_response
+    */
     public function save(Request $request)
-    {    
+    {            
         $id = null;
         if($request->has('option_id') && $request->filled('option_id')){
             $id = $request->option_id;
@@ -27,8 +38,6 @@ class OptionController extends Controller
                 return apiResponse('Invalid option id.',true);
             }
         }
-
-        /* option types : swatch, list */
 
         $validator = Validator::make($request->all(), [
             'option_name' => 'required',
@@ -59,13 +68,19 @@ class OptionController extends Controller
         );
 
         if(is_null($id)){
-            return apiResponse('Option added successfully.');
+            return apiResponse('Option created successfully.');
         }
         else{
             return apiResponse('Option updated successfully.');
         }
     }
 
+    /**
+     * delete the product option.
+     * Params -
+     * option_id : required
+     * @return json_response
+    */
     public function delete(Request $request)
     {
         $id = $request->option_id;
