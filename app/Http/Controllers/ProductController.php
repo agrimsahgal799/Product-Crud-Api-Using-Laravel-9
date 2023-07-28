@@ -6,93 +6,74 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Http\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use App\Models\Products;
+use App\Models\ProductImages;
 use App\Models\OptionSet;
+use App\Models\Options;
+use App\Models\ProductOptions;
 
 class ProductController extends Controller
 {
     public $product_obj;
-    public function __construct()
-    {
+    public function __construct(){
         $this->product_obj = new Products();
     }
 
     public function index()
     {
-        $products = Products::orderBy('id','DESC')->get();
+        $products = Products::select('*')->whereNotIn('id', ProductOptions::select('option_product_id'))
+        ->where(['hide_from_shop'=>'no','status'=>'enable'])
+        ->orderBy('id', 'DESC')
+        ->get()->toArray();
+        
+        if(count($products)>0){
+            $pids = [];
+            foreach($products as $product){
+                $pids[] = $product['id'];
+            }
+            $variants = Products::select('tbl_product.*','tbl_product_options.product_id','tbl_product_options.option_value_id')
+            ->join('tbl_product_options','tbl_product.id', '=', 'tbl_product_options.option_product_id')
+            ->whereNotIn('tbl_product.id', $pids)
+            ->get()->toArray();
+            if(count($variants)>0){
+                $variant_products = [];
+                foreach($variants as $v_product){
+                    $variant_products[$v_product['product_id']][] = $v_product;
+                }
+            }   
+            foreach($products as &$p){
+                if(isset($variant_products[$p['id']])){
+                    $p['variants'] = $variant_products[$p['id']];
+                }
+            } 
+        }
         return response()->json(['error'=>'false','data'=>$products]);
     }
 
+    /**
+     * insert the product.
+     *
+     * @return json_response
+    */
     public function save(Request $request)
     {
-        echo '<pre>';
-        print_r($request->all());
-
+        /* set global variables and arrays */
         $product_payload = [];
         $variant_products = [];
+        $product_images = [];
+        $created_at = date("Y-m-d H:i:s");
+        $updated_at = null;
+        $description = null;
         $option_set = 0;
-        $inventory_status = 'no';
         $inventory = 0;
+        $inventory_status = 'no';
         $status = 'enable';
         $product_name = $request->name;
+        $product_slug = '';
         $price = $request->price;
-        $description = null;
 
-        $upload = [];
-        if($request->file('images')){
-            $images = $request->file('images');
-            $valid_img = false;
-            foreach($images as $img){
-                $original_name = $img->getClientOriginalName();
-                $name = $img->hashName();
-                $path = $img->path();
-                $extension = $img->extension();
-                $is_img = $this->product_obj->isImageFile($extension);
-                if($is_img){
-                    $valid_img = true;
-                }
-                $upload[] = [
-                    'name' => $name,
-                    'path' => $path
-                ];
-            }
-            if(!$valid_img){
-                return apiResponse('Please select all valid images.',true);
-            }
-        }
-        elseif($request->has('images') && is_array($request->images) && count($request->images)>0){
-            
-            $images = $request->images;
-            $valid_img = false;
-            foreach($images as $img){
-                
-                $decodedImg = base64_decode(trim($img));
-                if(base64_encode(base64_decode($img, true)) === $img){   
-                    $decodedImg = base64_decode($img, true);
-                    $valid_img = true;
-                    $upload[] = [
-                        'name' => '',
-                        'path' => $decodedImg
-                    ];
-                }
-            }
-        }
-
-        if(count($upload)>0){
-
-            foreach($upload as $upload_file){
-                //Storage::putFile('product_images', new File('/path/to/photo'), 'public');
-
-                $path = Storage::putFileAs('public/product_images', new File($upload_file['path']), $upload_file['name']);
-                echo $path;
-                echo '<br>';
-            }
-
-            
-        }
-
-        echo '<pre>';print_r($upload);
-
+        /* validate required fields */
         $validator = Validator::make($request->all(),[
             'name' => 'required',
             'price' => 'required|numeric|gte:1'    
@@ -102,23 +83,10 @@ class ProductController extends Controller
             return apiResponse($errors->all(),true);
         }
 
-        $product_data = [];
-        $id = null;
-        if($request->has('id') && $request->filled('id')){
-            $id = $request->id;
-            if(!is_numeric($id)){
-                return apiResponse('Invalid product id.',true);
-            }
-            $product_data = $this->product_obj->getProduct($id);
-            if(!$product_data){
-                return apiResponse('Invalid option id.',true);
-            }
-        }
-
         if($request->has('description')){
             $description = $request->filled('description') ? $request->description : null;
         }else{
-            $description = isset($product_data->description) ? $product_data->description : null;
+            $description = null;
         }
 
         if($request->has('status')){
@@ -128,7 +96,7 @@ class ProductController extends Controller
             $status = $request->status;
         }
         else{
-            $status = isset($product_data->status) ? $product_data->status : 'enable';
+            $status = 'enable';
         }
 
         if($request->has('inventory')){
@@ -152,23 +120,22 @@ class ProductController extends Controller
             }
         }
         else{
-            $inventory = isset($product_data->inventory) ? $product_data->inventory : 0;
-            $inventory_status = isset($product_data->inventory_status) ? $product_data->inventory_status : 'no';
+            $inventory = 0;
+            $inventory_status = 'no';
         }
         
-        /* let's create product slug */
+        /* create product slug */
         $slug = $product_name;
         if($request->has('slug')){
             if($request->filled('slug')){
                 $slug = $request->slug;
             }
         }
-
         $product_slug = $this->product_obj->generateSlug($slug);
-
         /* validate slug from exist slugs in database */
         $product_slug = $this->product_obj->validateSlug($product_slug);
-
+        
+        /* process Gererate product variant products (attribute products) by option_set id */
         if($request->has('option_set'))
         {
             if($request->filled('option_set'))
@@ -178,15 +145,15 @@ class ProductController extends Controller
                 $valid_option_set = OptionSet::where('option_set_id', $option_set)->get()->first();
                 if(!is_null($valid_option_set))
                 {
-                    $options = $valid_option_set->option_id;
-
                     /* Gererate product variant products (attribute products) */
+                    $options = $valid_option_set->option_id;
                     $variants = $this->product_obj->generateVariants($options,$product_name);
                     if(count($variants)>0){
-                        foreach($variants as $v_slug => $v_name){
+                        foreach($variants as $v_data){
                             $variant_products[] = [
-                                'name' => $v_name,
-                                'slug' => $v_slug,
+                                'name' => $v_data['name'],
+                                'slug' => $v_data['slug'],
+                                'value_id' => $v_data['value_id'],
                                 'description' => $description,
                                 'price' => $price,
                                 'inventory' => $inventory,
@@ -207,7 +174,7 @@ class ProductController extends Controller
             }
         }
         else{
-            $option_set = $product_data->option_set;
+            $option_set = 0;
         }
 
         $product_payload = [
@@ -219,19 +186,66 @@ class ProductController extends Controller
             'inventory_status' => $inventory_status,
             'option_set' => $option_set,
             'hide_from_shop' => 'no',
-            'status' => $status
+            'status' => $status,
+            'created_at' => $created_at,
+            'updated_at' => $updated_at
         ];
-        $product_payload = array_merge(array($product_payload), $variant_products);
+        
+        /* Debug Code :
+        echo '<pre>';
         print_r($product_payload);
+        print_r($variant_products);
         die();
+        */
+
+        if($request->file('images')){
+            $product_images = $this->product_obj->uploadImages($request->images,'file_input');
+        }
+        elseif($request->has('images') && is_array($request->images) && count($request->images)>0){    
+            $product_images = $this->product_obj->uploadImages($request->images);
+        }
+        if(isset($product_images['error'])){
+            return apiResponse($product_images['message'],true);
+        }
 
         $products = new Products();
-        if(!is_null($id)){
-            
+        $main_product_id = $products->insertGetId($product_payload);
+        
+        if(count($variant_products)>0){
+            foreach($variant_products as $v_product){
+
+                $variant_product_id = $products->insertGetId([
+                    'name' => $v_product['name'],
+                    'slug' => $v_product['slug'],
+                    'description' => $v_product['description'],
+                    'price' => $v_product['price'],
+                    'inventory' => $v_product['inventory'],
+                    'inventory_status' => $v_product['inventory_status'],
+                    'option_set' => $v_product['option_set'],
+                    'hide_from_shop' => $v_product['hide_from_shop'],
+                    'status' => $v_product['status'],
+                    'created_at' => $created_at,
+                    'updated_at' => $updated_at
+                ]);
+                $product_options = new ProductOptions();
+                $product_options->insert([
+                    'product_id' => $main_product_id,
+                    'option_product_id' => $variant_product_id,
+                    'option_value_id' => $v_product['value_id'],
+                    'created_at' => $created_at,
+                    'updated_at' => $updated_at
+                ]);
+            }
         }
-        else{
-            $products->insert($product_payload);
-            return apiResponse('Products added successfully.');
+
+        if(count($product_images)>0){
+            foreach($product_images as &$p_imgs){
+                $p_imgs['product_id'] = $main_product_id;
+            }
+            $images = new ProductImages();
+            $images->insert($product_images);
         }
+
+        return apiResponse('Products added successfully.');
     }
 }

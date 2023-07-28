@@ -5,6 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\File;
+use Illuminate\Support\Str;
 use App\Models\Options;
 
 class Products extends Model
@@ -91,28 +94,40 @@ class Products extends Model
     {   
         $variant_products = [];
         $options = explode(",", $options);
-        $option_data = $this->options->join('tbl_option_values', 'tbl_options.option_id', '=', 'tbl_option_values.option_id')
+        $option_data = $this->options->select('tbl_option_values.id','tbl_options.option_id','tbl_options.option_name','tbl_options.option_type','tbl_option_values.option_value','tbl_option_values.color_code')
+                    ->join('tbl_option_values', 'tbl_options.option_id', '=', 'tbl_option_values.option_id')
                     ->whereIn('tbl_options.option_id', $options)
                     ->get()->toArray();
-        //print_r($option_data);
-
         if(!is_null($option_data))
         {
             $opn_array = [];  
             foreach($option_data as $opn_data){
-                $opn_array[$opn_data['option_id']][] = $opn_data['option_value'];
+                $opn_array[$opn_data['option_id']][$opn_data['id']] = $opn_data['option_value'];
             }
-
-            $opn_array = $this->get_combinations($opn_array);
-            // print_r($opn_array);
-            if(count($opn_array)>0){
+            
+            $opn_array = $this->get_combinations($opn_array);            
+            if(count($opn_array)>0)
+            {
                 $variants_names = [];
-                foreach($opn_array as $opn_arr){
-                    $variant_name = $product_name." ".implode(" ",$opn_arr);
+                foreach($opn_array as $opn_arr)
+                {
+                    $ids = [];
+                    $values = [];
+                    foreach($opn_arr as $op){
+                        $ids[] = $op['id'];
+                        $values[] = $op['value'];
+                    }
+                    $value_id = implode("," ,$ids);
+                    $variant_name = $product_name." ".implode(" ",$values);
                     $variant_slug = $this->generateSlug($variant_name);
-                    $variants_names[$variant_slug] = $variant_name;
+                    $variant_slug = $this->validateSlug($variant_slug);
+                    $variants_names[] = [
+                        'value_id' => $value_id,
+                        'name' => $variant_name,
+                        'slug' => $variant_slug
+                    ];
                 }
-                $variant_products = $this->validateVariantSlugs($variants_names);
+                $variant_products = $variants_names;
             }   
         }
         return $variant_products;
@@ -123,23 +138,13 @@ class Products extends Model
         foreach ($arrays as $property => $property_values) {
             $tmp = array();
             foreach ($result as $result_item) {
-                foreach ($property_values as $property_value) {
-                    $tmp[] = array_merge($result_item, array($property => $property_value));
+                foreach ($property_values as $property_key => $property_value) {
+                    $tmp[] = array_merge($result_item, array($property => array('id'=>$property_key,'value'=>$property_value)));   
                 }
             }
             $result = $tmp;
         }
         return $result;
-    }
-
-    public function validateVariantSlugs($slug_array)
-    {
-        $response = [];
-        foreach($slug_array as $slug => $name){
-            $valid_slug = $this->validateSlug($slug);
-            $response[$valid_slug] = $name;
-        }
-        return $response;
     }
 
     public function isImageFile($ext){
@@ -148,5 +153,96 @@ class Products extends Model
             return true;
         }
         return false;
+    }
+
+    public function uploadImages($images, $type = false)
+    {
+        $product_images = [];
+        if($type == 'file_input')
+        {
+            $valid_img = [];
+            $upload = [];
+            foreach($images as $img){
+                if(!is_null($img)){
+                    $original_name = $img->getClientOriginalName();
+                    $name = $img->hashName();
+                    $path = $img->path();
+                    $extension = $img->extension();
+                    $is_img = $this->isImageFile($extension);
+                    if($is_img){
+                        $valid_img[] = 'true';
+                        $upload[] = [
+                            'name' => $name,
+                            'path' => $path
+                        ];
+                    }
+                    else{
+                        $valid_img[] = 'false';
+                    }
+                }
+            }
+
+            if(in_array('false', $valid_img)){
+                return $product_images[] = ['error'=>true,'message'=>'Please select all valid images.'];
+            }
+            if(count($upload)>0){
+                foreach($upload as $upload_file){
+                    $path = Storage::putFileAs('public/product_images', $upload_file['path'], $upload_file['name']);
+                    if($path){
+                        $product_images[] = [
+                            'name' => $upload_file['name'],
+                            'path' => $path
+                        ];
+                    }
+                }
+            }
+        }
+        else
+        {
+            $valid_img = [];
+            $upload = [];
+            foreach($images as $img){
+                if(!is_null($img))
+                {
+                    if( stripos($img, "base64,") !== false ){
+                        $base64Image = explode(";base64,", $img);
+                        $image_base64 = base64_decode($base64Image[1]);
+                        $valid_img[] = 'true';
+                    }
+                    elseif(base64_encode(base64_decode($img, true)) === $img){   
+                        $image_base64 = base64_decode($img, true);
+                        $valid_img[] = 'true';
+                    }
+                    else{
+                        $valid_img[] = 'false';
+                    }
+                    if($valid_img){
+                        $upload[] = [
+                            'image' => $image_base64
+                        ];
+                    }
+                }
+            }
+            if(in_array('false', $valid_img)){
+                return $product_images[] = ['error'=>true,'message'=>'Please enter valid base64 image path.'];
+            }
+            if(count($upload)>0){
+                foreach($upload as $upload_file){
+
+                    $randomString = Str::random(30);
+                    $folder_path = storage_path('app/public/product_images/');
+                    $file = $randomString.'.jpg';
+                    $file_path = $folder_path.$file.'.jpg';
+                    $image = $upload_file['image'];
+                    file_put_contents($file_path, $image);
+                    $product_images[] = [
+                        'name' => $file,
+                        'path' => 'public/product_images/'.$file
+                    ];
+                }
+            }
+        }
+
+        return $product_images;
     }
 }
