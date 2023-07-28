@@ -16,8 +16,16 @@ This is the product crud API, where we can create products with variations. Apis
 - Get option set data by using this API: {{base_url}}/api/option_set [GET]
 - Delete option set by using this API: {{base_url}}/api/option/set/delete [POST]
 
-After creating the option set, call the product creation API:
+This is the product crud API, where we can create products with variations. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
+- Create variation options by using this API: {{base_url}}/api/option/save [POST]
+- Get variation options by using this API: {{base_url}}/api/options [GET]
+- Delete variation options by using this API: {{base_url}}/api/option/delete [POST]
+
+- Create option values by using this API: {{base_url}}/api/option/value/save [POST]
+- Get option values by using this API: {{base_url}}/api/option_values [GET]
+- Delete option value by using this API: {{base_url}}/api/option/value/delete [POST]
+
+- Create option set by using this API: {{base_url}}/api/option/set/save [POST]
+- Get option set data by using this API: {{base_url}}/api/option_set [GET]
+- Delete option set by using this API: {{base_url}}/api/option/set/delete [POST]
