@@ -16,9 +16,5 @@ This is the product crud API, where we can create products with variations. Apis
 - Get option set data by using this API: {{base_url}}/api/option_set [GET]
 - Delete option set by using this API: {{base_url}}/api/option/set/delete [POST]
   
-After create the option set, call the product API: {{base_url}}/api/product/save [POST]
+After creating the option set, call the product creation API: {{base_url}}/api/product/save [POST]
 - Get product list by using this API: {{base_url}}/api/products [POST]
-  
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
