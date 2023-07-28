@@ -18,5 +18,6 @@ This is the product crud API, where we can create products with variations. Apis
 
 After creating the option set, call the product creation API:
 
-- Create product by using this API: {{base_url}}/api/product/save [POST]
-- gbkjgkjkgkgg
+- Create variation options by using this API: {{base_url}}/api/option/save [POST]
+- Get variation options by using this API: {{base_url}}/api/options [GET]
+- Delete variation options by using this API: {{base_url}}/api/option/delete [POST]
