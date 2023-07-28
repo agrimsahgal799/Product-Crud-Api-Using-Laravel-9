@@ -1,8 +1,8 @@
 <p align="center"><h1 class="heading">PRODUCT CRUD</h1></p>
 
-## About Application
+## About This API
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This is the product crud API, where we can create product variations and variation sets. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
 
 - [Simple, fast routing engine](https://laravel.com/docs/routing).
 - [Powerful dependency injection container](https://laravel.com/docs/container).
