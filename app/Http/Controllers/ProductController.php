@@ -257,4 +257,51 @@ class ProductController extends Controller
 
         return apiResponse('Product created successfully.');
     }
+
+    /**
+     * delete the product.
+     * Remove product images from the folder and database.
+     * Remove also product options.
+     * Params -
+     * id : required
+     * @return json_response
+    */
+    public function delete(Request $request)
+    {
+        $id = $request->id;
+        if(!is_null($id)){
+            $product_data = Products::where(['id'=>$id])->first();
+            if($product_data)
+            {    
+                $variants = Products::join('tbl_product_options','tbl_product.id', '=', 'tbl_product_options.product_id')
+                ->where('tbl_product.id',$id)->get()->toArray();
+                if(count($variants)>0){
+                    $variant_ids = [];
+                    foreach($variants as $v){
+                        $variant_ids[] = $v['option_product_id'];
+                    }
+                    Products::whereIn('id', $variant_ids)->delete();
+                }
+            
+                $images = ProductImages::where('product_id',$id)->get();
+                if(count($images)>0){
+                    $img_path = [];
+                    foreach($images as $img){
+                        $img_path[] = $img->path;
+                    }
+                    Storage::delete($img_path);   
+                }
+                ProductImages::where('product_id',$id)->delete();
+                ProductOptions::where('product_id',$id)->delete();
+                Products::where('id',$id)->delete();
+                return apiResponse('Product deleted successfully.');
+            }
+            else{
+                return apiResponse('Invalid product id.',true);    
+            }
+        }
+        else{
+            return apiResponse('Product id is required.',true);
+        }
+    }
 }

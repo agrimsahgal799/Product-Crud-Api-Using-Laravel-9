@@ -40,6 +40,15 @@ class OptionSetController extends Controller
             }
         }
 
+        $validator = Validator::make($request->all(),[
+            'option_set_name' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            return apiResponse($errors->all(),true);
+        }
+
         $valid_options = false;
         $option_id_str = '';
         if($request->has('option_id') && is_array($request->option_id) && count($request->option_id)>0){
@@ -54,20 +63,10 @@ class OptionSetController extends Controller
                 $valid_options = true;
             }
         }
-
         if(!$valid_options){
             return apiResponse('Invalid option ids.',true);
         }
-
-        $validator = Validator::make($request->all(),[
-            'option_set_name' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            $errors = $validator->errors();
-            return apiResponse($errors->all(),true);
-        }
-
+        
         $optionSet = new OptionSet();
         $optionSet->updateOrInsert(
             ['option_set_id' => $id],

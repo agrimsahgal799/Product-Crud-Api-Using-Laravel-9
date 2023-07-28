@@ -28,8 +28,7 @@ class Products extends Model
         $this->options = new Options;
     }
 
-    public function getProduct($id)
-    {
+    public function getProduct($id){
         return $this->db->where(['id'=>$id])->first();
     }
 
