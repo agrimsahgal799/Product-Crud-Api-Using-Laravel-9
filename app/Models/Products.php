@@ -97,7 +97,7 @@ class Products extends Model
                     ->join('tbl_option_values', 'tbl_options.option_id', '=', 'tbl_option_values.option_id')
                     ->whereIn('tbl_options.option_id', $options)
                     ->get()->toArray();
-        if(!is_null($option_data))
+        if(count($option_data)>0)
         {
             $opn_array = [];  
             foreach($option_data as $opn_data){
