@@ -4,17 +4,21 @@
 
 This is the product crud API, where we can create products with variations. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
 
-- Create variation options by using these API: {{base_url}}/api/option/save
-- Get variation options by using these API: {{base_url}}/api/options
-- Delete variation options by using these API: {{base_url}}/api/option/delete
+- Create variation options by using this API: {{base_url}}/api/option/save [POST]
+- Get variation options by using this API: {{base_url}}/api/options [GET]
+- Delete variation options by using this API: {{base_url}}/api/option/delete [POST]
 
+- Create option values by using this API: {{base_url}}/api/option/value/save [POST]
+- Get option values by using this API: {{base_url}}/api/option_values [GET]
+- Delete option value by using this API: {{base_url}}/api/option/value/delete [POST]
 
-- Create option values by using these API: {{base_url}}/api/option/value/save
-- Get option values by using these API: {{base_url}}/api/option_values
-- Delete option value by using these API: {{base_url}}/api/option/value/delete
+- Create option set by using this API: {{base_url}}/api/option/set/save [POST]
+- Get option set data by using this API: {{base_url}}/api/option_set [GET]
+- Delete option set by using this API: {{base_url}}/api/option/set/delete [POST]
   
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
+After create the option set, call the product API: {{base_url}}/api/product/save [POST]
+- Get product list by using this API: {{base_url}}/api/products [POST]
+  
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
