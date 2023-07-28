@@ -2,16 +2,16 @@
 
 ## About This API
 
-This is the product crud API, where we can create product variations and variation sets. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
+This is the product crud API, where we can create products with variations. Apis is available to manage variation options, values, and variation sets. So if you want to create the product through the API, you need to create an option set that will be selected during product creation. Please follow these steps to create variations and products:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Create variation options by using these API: {{base_url}}/api/option/save
+- Get variation options by using these API: {{base_url}}/api/options
+- Delete variation options by using these API: {{base_url}}/api/option/delete
 
+- Create option values by using these API: {{base_url}}/api/option/value/save
+- Get option values by using these API: {{base_url}}/api/option_values
+- Delete option value by using these API: {{base_url}}/api/option/value/delete
+  
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
 ## Learning Laravel
